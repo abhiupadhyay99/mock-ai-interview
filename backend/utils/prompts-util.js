@@ -12,20 +12,21 @@ Generate exactly ${numberOfQuestions} interview questions for the following prof
 - Topics to focus on: ${topicsToFocus || "general topics for this role"}
 
 Rules for each question:
-1. The "answer" field must be well-structured using markdown:
-   - Use **bold** for key terms
-   - Use bullet points or numbered lists where appropriate
-   - Add a short \`\`\`js ... \`\`\` code block when relevant (keep it under 10 lines)
-   - Break the answer into short paragraphs — never one wall of text
-2. Answers should be beginner-friendly but technically accurate.
-3. Difficulty should match ${experience} years of experience.
+1. Create a Multiple Choice Question (MCQ) format.
+2. Provide exactly 4 options in an "options" array.
+3. The "answer" field must exactly match one of the 4 strings in the "options" array.
+4. Ensure options are concise and distinct.
+5. Break any complex technical concepts into beginner-friendly terminology.
+
+Difficulty should match ${experience} years of experience.
 
 Return ONLY a valid JSON array. No extra text, no markdown wrapper around the JSON.
 
 [
   {
-    "question": "...",
-    "answer": "**Definition:** ...\\n\\n**Key points:**\\n- Point 1\\n- Point 2\\n\\n\`\`\`js\\n// example\\n\`\`\`"
+    "question": "Which component is responsible for...",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": "Option A"
   }
 ]`;
 };

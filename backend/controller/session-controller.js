@@ -115,3 +115,29 @@ export const getSessionById = async (req, res) => {
   }
 };
 
+// @desc    Update session score upon completion
+// @route   PATCH /api/sessions/:id
+// @access  Private
+export const updateSessionScore = async (req, res) => {
+  try {
+    const { score } = req.body;
+    const session = await Session.findById(req.params.id);
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: "Session not found" });
+    }
+    if (session.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    session.score = score;
+    session.isCompleted = true;
+    await session.save();
+
+    res.status(200).json({ success: true, session });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
