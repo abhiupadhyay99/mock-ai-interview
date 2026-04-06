@@ -17,16 +17,14 @@ const SignUp = () => {
       await axios.post(API_PATHS.AUTH.SIGNUP, form);
       navigate("/login");
     } catch (error) {
-
-      console.log(error.response);
-      console.log(error.message);
-
-      alert("Signup failed");
+      console.error(error.response?.data || error.message);
+      const errorMsg = error.response?.data?.message || "Signup failed";
+      alert(errorMsg);
     }
   };
 
   return   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-white to-yellow-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+      <div className="w-full max-w-md bg-white p-5 sm:p-8 rounded-2xl shadow-lg">
         {/* Heading */}
         <h2 className="text-2xl font-bold text-center mb-2">
           Create Account 🚀
@@ -35,37 +33,42 @@ const SignUp = () => {
           Start your AI-powered interview preparation
         </p>
 
-        {/* Name */}
-        <input
-          type="text"
-          placeholder="Enter your name"
-          className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
+        <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
+          {/* Name */}
+          <input
+            type="text"
+            placeholder="Enter your name"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
 
-        {/* Email */}
-        <input
-          type="email"
-          placeholder="Enter your email"
-          className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
+          {/* Email */}
+          <input
+            type="email"
+            placeholder="Enter your email"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+          />
 
-        {/* Password */}
-        <input
-          type="password"
-          placeholder="Create a password"
-          className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
+          {/* Password */}
+          <input
+            type="password"
+            placeholder="Create a password"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+          />
 
-        {/* Button */}
-        <button
-          onClick={handleSignup}
-          className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200"
-        >
-          Sign Up
-        </button>
+          {/* Button */}
+          <button
+            type="submit"
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200"
+          >
+            Sign Up
+          </button>
+        </form>
 
         {/* Divider */}
         <div className="flex items-center my-5">

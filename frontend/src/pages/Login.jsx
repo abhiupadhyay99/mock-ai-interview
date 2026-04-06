@@ -18,44 +18,49 @@ const Login = () => {
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
     } catch (error) {
-      alert("Invalid email and password");
+      const errorMsg = error.response?.data?.message || "Something went wrong during login";
+      alert(errorMsg);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-white to-yellow-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+      <div className="w-full max-w-md bg-white p-5 sm:p-8 rounded-2xl shadow-lg">
         {/* Heading */}
         <h2 className="text-2xl font-bold text-center mb-2">Welcome Back 👋</h2>
         <p className="text-gray-500 text-center mb-6 text-sm">
           Login to continue your interview preparation
         </p>
 
-        {/* Email */}
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter your email"
-          className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onChange={handleForm}
-        />
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+          {/* Email */}
+          <input
+            type="email"
+            name="email"
+            placeholder="Enter your email"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            onChange={handleForm}
+            required
+          />
 
-        {/* Password */}
-        <input
-          type="password"
-          name="password"
-          placeholder="Enter your password"
-          className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onChange={handleForm}
-        />
+          {/* Password */}
+          <input
+            type="password"
+            name="password"
+            placeholder="Enter your password"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            onChange={handleForm}
+            required
+          />
 
-        {/* Button */}
-        <button
-          onClick={handleLogin}
-          className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200"
-        >
-          Login
-        </button>
+          {/* Button */}
+          <button
+            type="submit"
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200"
+          >
+            Login
+          </button>
+        </form>
 
         {/* Divider */}
         <div className="flex items-center my-5">

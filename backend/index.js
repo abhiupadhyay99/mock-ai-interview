@@ -36,9 +36,15 @@ app.get("/", (req, res) => {
   });
 });
 
-//~ 3. assign a port number to aur server
-app.listen(PORT, (err) => {
-  if (err) console.log(err);
-  console.log("Server Started.....");
-  connectDB();
-});
+// Initialize database globally for Vercel Serverless
+connectDB();
+
+// Only listen locally, Vercel handles requests via the exported app
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, (err) => {
+    if (err) console.log(err);
+    console.log("Server Started.....");
+  });
+}
+
+export default app;
