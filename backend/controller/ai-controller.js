@@ -10,7 +10,9 @@ import {
   questionAnswerPrompt,
 } from "../utils/prompts-util.js";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "dummy_key_to_prevent_crash_please_add_real_key" });
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY
+});
 
 // @desc    Generate + SAVE interview questions for a session
 // @route   POST /api/ai/generate-questions
@@ -52,7 +54,7 @@ export const generateInterviewQuestions = async (req, res) => {
       //? 2. generate via Gemini
       const prompt = questionAnswerPrompt(role, experience, topicsToFocus, 15);
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
       });
       console.log("response: ", response);
@@ -128,7 +130,7 @@ export const generateConceptExplanation = async (req, res) => {
     const prompt = conceptExplainPrompt(question);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
     });
 

@@ -113,8 +113,10 @@ const Dashboard = () => {
       <main className="flex-1 p-8">
         <header className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">Welcome back! 👋</h2>
-            <p className="text-gray-500 mt-1">Ready to ace your next interview?</p>
+            <h2 className="text-3xl font-bold text-gray-800">
+              Welcome back, <span className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 shadow-sm shadow-indigo-100/50">{localStorage.getItem("name") || "Developer"}</span>! 👋
+            </h2>
+            <p className="text-gray-500 mt-2 font-medium">Ready to ace your next professional interview?</p>
           </div>
           <motion.button
             onClick={() => setIsModalOpen(true)}
