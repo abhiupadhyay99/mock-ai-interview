@@ -129,6 +129,30 @@ const InterviewPrep = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <button onClick={() => navigate("/dashboard")} className="text-gray-500 hover:text-black transition font-medium">← Abandon Mock</button>
+          
+          {/* Premium Glassmorphism Candidate Info */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-3 md:gap-4 bg-white/40 backdrop-blur-xl px-4 md:px-6 py-2 md:py-3 rounded-[2rem] border border-white/40 shadow-[0_8px_32px_0_rgba(79,70,229,0.1)] ring-1 ring-white/20"
+          >
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-2 mb-1">
+                <motion.div 
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }} 
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.8)]"
+                />
+                <span className="text-[8px] md:text-[10px] text-indigo-600 font-extrabold uppercase tracking-[0.2em] leading-none">Live Monitoring</span>
+              </div>
+              <span className="text-sm md:text-base font-black text-slate-800 tracking-tight leading-none">{localStorage.getItem("name") || "Developer Session"}</span>
+              <span className="text-[8px] md:text-[9px] text-slate-400 font-mono mt-1 font-bold">ID: #{id?.slice(-8).toUpperCase() || "BETA-SYSTEM"}</span>
+            </div>
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold border-2 border-white/50 shadow-lg text-sm md:text-base">
+              {(localStorage.getItem("name") || "D")[0].toUpperCase()}
+            </div>
+          </motion.div>
+
           <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-bold text-gray-700">
             Question {currentIdx + 1} of {questions.length}
           </div>

@@ -16,9 +16,18 @@ const Login = () => {
     try {
       const res = await axios.post(API_PATHS.AUTH.LOGIN, form);
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("name", res.data.name);
       navigate("/dashboard");
     } catch (error) {
-      const errorMsg = error.response?.data?.message || "Something went wrong during login";
+      console.error("Login failure:", error);
+      let errorMsg = "Something went wrong during login";
+      
+      if (!error.response) {
+        errorMsg = "❌ Backend server is not running or unreachable!";
+      } else if (error.response.data?.message) {
+        errorMsg = error.response.data.message;
+      }
+      
       alert(errorMsg);
     }
   };

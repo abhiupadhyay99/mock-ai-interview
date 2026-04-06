@@ -57,21 +57,30 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`🔑 Login attempt for: ${email}`);
 
     const user = await User.findOne({ email });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (!user) {
+      console.log(`❌ Login failed: User ${email} not found`);
+      return res.status(401).json({ message: "No account found with this email" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      console.log(`✅ Login successful: ${email}`);
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
-        //profileImageUrl: user.profileImageUrl,
         token: generateToken(user._id),
       });
     } else {
-      res.status(401).json({ message: "Invalid email or password" });
+      console.log(`❌ Login failed: Incorrect password for ${email}`);
+      res.status(401).json({ message: "Invalid password. Please try again." });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(`💥 Login error: ${error.message}`);
+    res.status(500).json({ message: "Server error during login" });
   }
 };
