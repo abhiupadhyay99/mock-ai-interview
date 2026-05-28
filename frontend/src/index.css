@@ -1,2 +1,117 @@
-@import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
+
+:root {
+  --primary-blue: #3b82f6;
+  --bg-deep: #030712;
+  --card-bg: rgba(15, 23, 42, 0.7);
+  --border-light: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-deep);
+  color: white;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Premium Organic Mesh Flow (Option 5) */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-deep);
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 50%, rgba(79, 70, 229, 0.05) 0px, transparent 40%);
+  filter: blur(80px);
+  z-index: -10;
+  opacity: 0.8;
+}
+
+@layer components {
+  .exam-card {
+    @apply bg-white border border-slate-200 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)];
+  }
+
+  .glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    border-radius: 2rem;
+    @apply transition-all duration-300;
+  }
+
+  .glass-morphism {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .exam-button {
+    @apply px-12 py-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-field {
+    @apply w-full px-8 py-6 rounded-2xl bg-slate-100 border-2 border-slate-200 focus:border-blue-500 focus:bg-white text-slate-800 outline-none transition-all font-bold;
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+  animation: float 4s ease-in-out infinite;
+}
+
+.exam-button-outline {
+  border: 2px solid #e2e8f0;
+  color: #64748b;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s ease;
+}
+
+.exam-button-outline:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Scrollbar Clean */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Keep previous utilities but refine for 'Normal' look */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

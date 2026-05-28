@@ -1,94 +1,130 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { API_PATHS } from "../utils/apiPaths";
-import axios from "../utils/axiosInstance";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { FiUser, FiMail, FiLock, FiArrowRight, FiActivity } from 'react-icons/fi';
+import axios from '../utils/axiosInstance';
+import { API_PATHS } from '../utils/apiPaths';
 
 const SignUp = () => {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = async () => {
+  const handleForm = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
     try {
       await axios.post(API_PATHS.AUTH.SIGNUP, form);
-      navigate("/login");
+      alert('Account Created Successfully! Please login.');
+      navigate('/login');
     } catch (error) {
-      console.error(error.response?.data || error.message);
-      const errorMsg = error.response?.data?.message || "Signup failed";
-      alert(errorMsg);
+      alert(error.response?.data?.message || 'SignUp Failed');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 via-white to-yellow-50 px-4">
-      <div className="w-full max-w-md bg-white p-5 sm:p-8 rounded-2xl shadow-lg">
-        {/* Heading */}
-        <h2 className="text-2xl font-bold text-center mb-2">
-          Create Account 🚀
-        </h2>
-        <p className="text-gray-500 text-center mb-6 text-sm">
-          Start your AI-powered interview preparation
-        </p>
+  return (
+    <div className="min-h-screen bg-[#030712] text-white flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Animated Mesh Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], x: [-50, 50, -50], y: [-20, 20, -20] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[120px]"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], x: [50, -50, 50], y: [20, -20, 20] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-purple-600/10 rounded-full blur-[120px]"
+        />
+      </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSignup(); }}>
-          {/* Name */}
-          <input
-            type="text"
-            placeholder="Enter your name"
-            className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-
-          {/* Email */}
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-
-          {/* Password */}
-          <input
-            type="password"
-            placeholder="Create a password"
-            className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:outline-none focus:ring-2 focus:ring-orange-400"
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-
-          {/* Button */}
-          <button
-            type="submit"
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition duration-200"
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="w-full max-w-md"
+      >
+        <div className="text-center mb-10">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: -5 }}
+            className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/20"
           >
-            Sign Up
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="flex items-center my-5">
-          <div className="flex-1 h-[1px] bg-gray-200"></div>
-          <p className="px-3 text-gray-400 text-sm">OR</p>
-          <div className="flex-1 h-[1px] bg-gray-200"></div>
+            <FiActivity className="text-white text-3xl" />
+          </motion.div>
+          <h1 className="text-4xl font-black tracking-tight mb-2">Create Account</h1>
+          <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px]">Sign up for your account</p>
         </div>
 
-        {/* Login Link */}
-        <p className="text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-orange-500 font-medium hover:underline"
-          >
-            Login
-          </Link>
-        </p>
-      </div>
-    </div>;
+        <div className="glass-card rounded-[3rem] p-10 md:p-12 border-white/10 shadow-[0_0_80px_rgba(99,102,241,0.1)]">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Full Name</label>
+              <div className="relative group">
+                <FiUser className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Abhishek Upadhyay"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pl-14 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white/10 transition-all font-medium"
+                  onChange={handleForm}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email Address</label>
+              <div className="relative group">
+                <FiMail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="name@example.com"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pl-14 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white/10 transition-all font-medium"
+                  onChange={handleForm}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
+              <div className="relative group">
+                <FiLock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 pl-14 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white/10 transition-all font-medium"
+                  onChange={handleForm}
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              disabled={loading}
+              className="w-full group relative flex items-center justify-center bg-indigo-600 py-6 rounded-[2rem] font-black text-white uppercase tracking-widest text-xs shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <span className="relative flex items-center">
+                {loading ? 'Creating Account...' : 'Sign Up'}
+                <FiArrowRight className="ml-3 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </button>
+          </form>
+
+          <div className="mt-10 text-center">
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest leading-loose">
+              Already have an account? <button onClick={() => navigate('/login')} className="text-indigo-400 hover:text-indigo-300 transition-colors">Login</button>
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
 };
 
 export default SignUp;

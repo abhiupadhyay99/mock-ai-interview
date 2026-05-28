@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiPlay, FiClock, FiCheckCircle, FiTrendingUp, FiSettings, FiLogOut } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiPlay, FiClock, FiCheckCircle, FiTrendingUp, FiLogOut, FiLayout, FiActivity, FiArrowRight, FiCpu, FiMessageSquare } from 'react-icons/fi';
 import axios from '../utils/axiosInstance';
 import { API_PATHS } from '../utils/apiPaths';
 import moment from 'moment';
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Setup Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,18 +27,14 @@ const Dashboard = () => {
       const token = localStorage.getItem("token");
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      // 1. Create empty session
       const sessionRes = await axios.post(API_PATHS.SESSION.CREATE, {
         ...setupForm,
-        description: "AI-generated Mock Interview",
+        description: "Professional Mock Interview",
         questions: []
       });
       const sessionId = sessionRes.data.session._id;
 
-      // 2. Generate AI questions (limited to 50)
       await axios.post(API_PATHS.AI.GENERATE_QUESTIONS, { sessionId });
-
-      // 3. Jump to Interview Screen
       navigate(`/interview/${sessionId}`);
     } catch (error) {
       console.error("Setup error", error);
@@ -70,38 +67,64 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("name");
     navigate("/login");
   };
 
-  // Derive aggregates
   const completedSessions = sessions.filter(s => s.isCompleted);
   const totalScore = completedSessions.reduce((acc, s) => acc + (s.score || 0), 0);
   const totalQs = completedSessions.reduce((acc, s) => acc + (s.questions?.length || 0), 0);
-  const avgScore = totalQs > 0 ? Math.round((totalScore / totalQs) * 100) + "%" : "N/A";
+  const avgScore = totalQs > 0 ? Math.round((totalScore / totalQs) * 100) + "%" : "0%";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#f1f5f9] flex flex-col md:flex-row selection:bg-blue-500/30 overflow-hidden text-slate-800">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-transparent">
-            InterviewAI
-          </h1>
+      <aside className="w-full md:w-72 bg-[#0f172a] text-white flex flex-col z-30 shadow-2xl">
+        <div className="p-8">
+          <div className="flex items-center space-x-3 mb-12">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <FiCheckCircle className="text-xl" />
+            </div>
+            <h1 className="text-2xl font-black tracking-tighter">
+              InterviewAI
+            </h1>
+          </div>
+
+          <nav className="space-y-1">
+            {[
+              { id: "dashboard", icon: <FiLayout />, label: "Dashboard" },
+              { id: "history", icon: <FiClock />, label: "History" },
+              { id: "feedback", icon: <FiMessageSquare />, label: "Feedback" }
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center space-x-3 px-6 py-4 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all ${
+                  activeTab === item.id 
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <a href="#" className="flex items-center space-x-3 text-orange-600 bg-orange-50 px-4 py-3 rounded-xl font-medium transition cursor-default">
-            <FiTrendingUp className="text-lg" />
-            <span>Dashboard</span>
-          </a>
-          <a href="#" className="flex items-center space-x-3 text-gray-600 hover:bg-gray-100 px-4 py-3 rounded-xl font-medium transition cursor-default">
-            <FiClock className="text-lg" />
-            <span>History</span>
-          </a>
-        </nav>
-        <div className="p-4 border-t border-gray-200">
+
+        <div className="mt-auto p-8 border-t border-white/5">
+          <div className="flex items-center space-x-4 mb-8 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center text-white font-black text-sm">
+              {(localStorage.getItem("name")?.[0] || "U").toUpperCase()}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black truncate max-w-[120px]">{localStorage.getItem("name") || "User"}</span>
+              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Active Status</span>
+            </div>
+          </div>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-3 text-gray-600 hover:text-red-600 hover:bg-red-50 w-full px-4 py-3 rounded-xl font-medium transition"
+            className="flex items-center space-x-3 text-slate-400 hover:text-red-400 px-6 py-3 w-full font-bold uppercase tracking-widest text-[10px] transition-colors"
           >
             <FiLogOut className="text-lg" />
             <span>Logout</span>
@@ -110,169 +133,192 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8">
-        <header className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+      <main className="flex-1 p-6 md:p-12 overflow-y-auto h-screen scrollbar-hide bg-[#f8fafc]">
+        <header className="mb-12 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">
-              Welcome back, <span className="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 shadow-sm shadow-indigo-100/50">{localStorage.getItem("name") || "Developer"}</span>! 👋
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="h-px w-8 bg-blue-600"></div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Administrative Center</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-800">
+              Welcome, <span className="text-blue-600">{localStorage.getItem("name")?.split(' ')[0] || "Candidate"}</span>
             </h2>
-            <p className="text-gray-500 mt-2 font-medium">Ready to ace your next professional interview?</p>
+            <p className="text-slate-500 mt-2 font-bold uppercase tracking-[0.2em] text-[10px]">Your professional examination portal is ready.</p>
           </div>
-          <motion.button
+          
+          <button
             onClick={() => setIsModalOpen(true)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-black text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-gray-800 transition flex items-center space-x-2"
+            className="exam-button"
           >
-            <FiPlay className="text-lg" />
-            <span>Start Practice</span>
-          </motion.button>
+            <FiPlay className="inline-block mr-2 text-lg" /> Generate AI Qus
+          </button>
         </header>
 
         {loading ? (
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <div className="flex justify-center items-center h-64">
+             <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
           </div>
         ) : (
-          <>
+          <div className="space-y-12">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                <div className="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-xl">
-                  <FiCheckCircle />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { label: "Tests Completed", value: completedSessions.length, icon: <FiCheckCircle />, color: "text-blue-600" },
+                { label: "Overall Accuracy", value: avgScore, icon: <FiTrendingUp />, color: "text-emerald-600" },
+                { label: "Total Sessions", value: sessions.length, icon: <FiActivity />, color: "text-slate-600" }
+              ].map((stat, i) => (
+                <div 
+                  key={i}
+                  className="exam-card relative p-8 flex flex-col space-y-2"
+                >
+                  <div className={`absolute right-8 top-8 text-4xl opacity-10 ${stat.color}`}>{stat.icon}</div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</span>
+                  <span className="text-4xl font-black text-slate-800">{stat.value}</span>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-800">{completedSessions.length}</h3>
-                  <p className="text-sm text-gray-500 font-medium">Interviews Completed</p>
-                </div>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-xl">
-                  <FiTrendingUp />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-800">{avgScore}</h3>
-                  <p className="text-sm text-gray-500 font-medium">Average Score</p>
-                </div>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-xl">
-                  <FiClock />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-800">{sessions.length > 0 ? `${(sessions.length * 0.5).toFixed(1)}h` : "0h"}</h3>
-                  <p className="text-sm text-gray-500 font-medium">Practice Time</p>
-                </div>
-              </motion.div>
+              ))}
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-800">Recent Sessions</h3>
-                {sessions.length > 0 && <button className="text-orange-500 text-sm font-medium hover:underline">View All</button>}
+            <section>
+              <div className="flex justify-between items-center mb-8 px-2 border-b border-slate-200 pb-4">
+                <h3 className="text-xl font-black tracking-tight flex items-center text-slate-800">
+                  <FiClock className="mr-3 text-blue-600" /> Recent Examinations
+                </h3>
+                <button className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700">View All History</button>
               </div>
-              <div className="divide-y divide-gray-100">
+
+              <div className="space-y-4">
                 {sessions.length === 0 ? (
-                  <p className="p-6 text-center text-gray-500">No mock interviews completed yet. Start preparing!</p>
+                  <div className="exam-card p-12 text-center">
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No examination records found.</p>
+                  </div>
                 ) : (
                   sessions.slice(0, 5).map((session, i) => (
-                    <motion.div onClick={() => navigate(`/interview/${session._id}`)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + (i * 0.1) }} key={session._id || i} className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between hover:bg-gray-50 transition cursor-pointer">
-                      <div>
-                        <h4 className="font-semibold text-gray-800 capitalize">{session.role} Role Interview</h4>
-                        <p className="text-sm text-gray-500 mt-1">{moment(session.createdAt).fromNow()}</p>
+                    <div 
+                      key={session._id || i}
+                      onClick={() => navigate(`/interview/${session._id}`)}
+                      className="group p-6 md:p-10 exam-card hover:border-blue-300 transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between"
+                    >
+                      <div className="flex items-center space-x-6">
+                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl ${session.isCompleted ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
+                          {session.isCompleted ? <FiCheckCircle /> : <FiActivity />}
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-slate-800 capitalize">{session.role} Assessment</h4>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{moment(session.createdAt).format('MMMM Do, YYYY')}</span>
+                        </div>
                       </div>
-                      <div className="text-left md:text-right mt-2 md:mt-0">
-                        {session.isCompleted ? (
-                          <>
-                            <span className={`font-bold text-green-500`}>Score: {session.score} / {session.questions?.length || 0}</span>
-                            <p className="text-xs text-gray-400 mt-1">Completed</p>
-                          </>
-                        ) : (
-                          <>
-                            <span className={`font-bold text-orange-500`}>In Progress</span>
-                            <p className="text-xs text-gray-400 mt-1">{session.questions?.length || 0} Questions</p>
-                          </>
-                        )}
+                      <div className="mt-4 md:mt-0 flex items-center space-x-8">
+                        <div className="text-left md:text-right">
+                          {session.isCompleted ? (
+                            <>
+                              <div className="text-2xl font-black text-emerald-600">{session.score} / {session.questions?.length || 10}</div>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Validated Score</span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-2xl font-black text-slate-400">PENDING</div>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-blue-500 font-black">Resume Assessment</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="h-10 w-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-600 transition-all">
+                          <FiArrowRight />
+                        </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))
                 )}
               </div>
-            </div>
-          </>
+            </section>
+          </div>
         )}
       </main>
 
-      {/* Interview Setup Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            {!generating ? (
-              <>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">Setup Mock Interview</h3>
-                <p className="text-gray-500 text-sm mb-6">Choose your domain constraint and skill level to begin.</p>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Interview Role</label>
-                    <select
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-                      value={setupForm.role}
-                      onChange={(e) => setSetupForm({ ...setupForm, role: e.target.value })}
-                    >
-                      <option value="Java Fullstack">Java Fullstack Developer</option>
-                      <option value="Python Fullstack">Python Fullstack Developer</option>
-                      <option value="Frontend">Frontend Developer (React)</option>
-                      <option value="Backend">Backend Developer (Node.js)</option>
-                      <option value="Data Scientist">Data Scientist</option>
-                    </select>
+      {/* Modal Wrapper */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200"
+            >
+              {!generating ? (
+                <div className="p-10">
+                  <div className="flex justify-between items-start mb-10">
+                    <div>
+                      <h3 className="text-3xl font-black text-slate-800 tracking-tight mb-2">Configure Test</h3>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Select your assessment criteria.</p>
+                    </div>
+                    <button onClick={() => setIsModalOpen(false)} className="p-3 rounded-full hover:bg-slate-50 transition-colors text-slate-400">
+                        <FiLogOut className="rotate-180" />
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-                    <input
-                      type="number" min="0" max="20"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={setupForm.experience}
-                      onChange={(e) => setSetupForm({ ...setupForm, experience: e.target.value })}
-                    />
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Target Domain</label>
+                       <select
+                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer"
+                         value={setupForm.role}
+                         onChange={(e) => setSetupForm({ ...setupForm, role: e.target.value })}
+                       >
+                         <option value="Java Fullstack">Java Fullstack Developer</option>
+                         <option value="Python Fullstack">Python Fullstack Developer</option>
+                         <option value="Frontend">Frontend Developer (React)</option>
+                         <option value="Backend">Backend Developer (Node.js)</option>
+                         <option value="Data Scientist">Data Scientist</option>
+                       </select>
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Experience (Years)</label>
+                       <input
+                         type="number" min="0" max="20"
+                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                         value={setupForm.experience}
+                         onChange={(e) => setSetupForm({ ...setupForm, experience: e.target.value })}
+                       />
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Skills to focus</label>
+                       <input
+                         type="text" placeholder="e.g. React, SQL"
+                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                         value={setupForm.topicsToFocus}
+                         onChange={(e) => setSetupForm({ ...setupForm, topicsToFocus: e.target.value })}
+                       />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Specific Topics to Focus On (Optional)</label>
-                    <input
-                      type="text" placeholder="e.g. Microservices, Multithreading, System Design"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      value={setupForm.topicsToFocus}
-                      onChange={(e) => setSetupForm({ ...setupForm, topicsToFocus: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-8 flex space-x-3">
-                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition">
-                    Cancel
+                  <button 
+                    onClick={handleStartPractice}
+                    className="exam-button w-full mt-10"
+                  >
+                    Generate AI Qus
                   </button>
-                  <button onClick={handleStartPractice} className="flex-1 py-3 bg-orange-500 rounded-xl font-semibold text-white hover:bg-orange-600 transition shadow-md shadow-orange-500/30">
-                    Generate AI Interview
-                  </button>
                 </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <div className="animate-spin inline-block w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full mb-6"></div>
-                <h3 className="text-xl font-bold text-gray-800">Compiling 50 Custom Questions...</h3>
-                <p className="text-gray-500 mt-2 text-sm max-w-xs mx-auto">
-                  Our Gemini LLM engine is generating a completely unique mock interview for a {setupForm.experience}-year {setupForm.role}. This may take 30-40 seconds.
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="p-20 text-center flex flex-col items-center">
+                  <div className="w-16 h-16 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-10"></div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-4">Organizing Questions...</h3>
+                  <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[9px] max-w-xs leading-loose">
+                    Preparing your professional technical assessment based on the selected criteria.
+                  </p>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

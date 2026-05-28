@@ -9,6 +9,7 @@ const sessionSchema = new mongoose.Schema(
     description: { type: String },
     questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
     score: { type: Number, default: 0 },
+    userAnswers: { type: Map, of: String, default: {} },
     isCompleted: { type: Boolean, default: false }
   },
   { timestamps: true }

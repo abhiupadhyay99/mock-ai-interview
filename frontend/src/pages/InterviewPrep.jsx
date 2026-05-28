@@ -1,32 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import axios from "../utils/axiosInstance";
-import { API_PATHS } from "../utils/apiPaths";
-import { FiCheckCircle, FiClock, FiXCircle } from "react-icons/fi";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiClock, FiCheckCircle, FiXCircle, FiArrowRight, FiArrowLeft, FiAlertCircle, FiActivity, FiCpu } from 'react-icons/fi';
+import axios from '../utils/axiosInstance';
+import { API_PATHS } from '../utils/apiPaths';
 
 const InterviewPrep = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // Base State
   const [questions, setQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const [score, setScore] = useState(0);
+  const [showScore, setShowScore] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [quizFinished, setQuizFinished] = useState(false);
+
+  // Persistence State (Answers Memory)
+  const [answers, setAnswers] = useState({}); // { [index]: selectedChoice }
+  const [finalScore, setFinalScore] = useState(0);
 
   useEffect(() => {
     const fetchSession = async () => {
       try {
         const token = localStorage.getItem("token");
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        const res = await axios.get(`${API_PATHS.SESSION.GET_ONE}/${id}`);
-        setQuestions(res.data.session.questions || []);
-      } catch (err) {
-        console.error(err);
+        const res = await axios.get(`${API_PATHS.SESSION.GET_SESSION}/${id}`);
+        const sessionData = res.data.session;
+        setQuestions(sessionData.questions || []);
+
+        // Load existing answers (Server Memory)
+        if (sessionData.userAnswers) {
+          const loadedAnswers = {};
+          sessionData.questions.forEach((q, idx) => {
+            if (sessionData.userAnswers[q._id]) {
+              loadedAnswers[idx] = sessionData.userAnswers[q._id];
+            }
+          });
+          setAnswers(loadedAnswers);
+
+          // Auto-forward to first unanswered question
+          const firstUnanswered = sessionData.questions.findIndex(q => !sessionData.userAnswers[q._id]);
+          if (firstUnanswered !== -1) {
+            setCurrentIdx(firstUnanswered);
+          } else if (sessionData.questions.length > 0) {
+            setCurrentIdx(sessionData.questions.length - 1);
+            if (sessionData.isCompleted) setShowScore(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching session", error);
       } finally {
         setLoading(false);
       }
@@ -35,190 +58,210 @@ const InterviewPrep = () => {
   }, [id]);
 
   useEffect(() => {
-    if (loading || quizFinished || isAnswered || questions.length === 0) return;
+    if (timeLeft > 0 && !showScore && !loading && !answers[currentIdx]) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && !answers[currentIdx]) {
+      handleOptionSelect(null);
+    }
+  }, [timeLeft, showScore, loading, answers, currentIdx]);
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          handleTimeOut();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  const handleOptionSelect = async (option) => {
+    if (answers[currentIdx]) return; // LOCK: Prevent re-answering
+    const qId = questions[currentIdx]._id;
 
-    return () => clearInterval(timer);
-  }, [loading, quizFinished, isAnswered, currentIdx, questions]);
-
-  const handleTimeOut = () => {
-    setIsAnswered(true);
-    setTimeout(nextQuestion, 2000);
-  };
-
-  const handleOptionSelect = (option) => {
-    if (isAnswered) return;
-    setSelectedOption(option);
-    setIsAnswered(true);
-
-    if (option === questions[currentIdx].answer) {
-      setScore((prev) => prev + 1);
+    // Local Update
+    setAnswers(prev => ({ ...prev, [currentIdx]: option }));
+    
+    // Server Sync (Cheat-Proof Lock)
+    try {
+        await axios.patch(`${API_PATHS.SESSION.SAVE_ANSWER}/${id}/answer`, {
+            questionId: qId,
+            selectedOption: option
+        });
+    } catch (err) {
+        console.error("Failed to sync answer", err);
     }
 
-    setTimeout(nextQuestion, 2000);
+    // Auto-advance after 1.5 seconds with feedback
+    setTimeout(() => {
+      handleNext();
+    }, 1500);
   };
 
-  const nextQuestion = async () => {
+  const handleNext = async () => {
     if (currentIdx < questions.length - 1) {
-      setCurrentIdx((prev) => prev + 1);
-      setSelectedOption(null);
-      setIsAnswered(false);
+      setCurrentIdx(currentIdx + 1);
       setTimeLeft(30);
     } else {
-      setQuizFinished(true);
-      await submitScore();
+      // Calculate final results
+      let score = 0;
+      questions.forEach((q, idx) => {
+        if (answers[idx] === q.answer) {
+          score++;
+        }
+      });
+      setFinalScore(score);
+      await axios.patch(`${API_PATHS.SESSION.UPDATE_SCORE}/${id}`, { score });
+      setShowScore(true);
     }
   };
 
-  const submitScore = async () => {
-    try {
-      // Use active closure values since state updates asynchronously
-      let finalScore = score;
-      if (selectedOption === questions[currentIdx].answer) finalScore += 1;
+  if (loading) return (
+    <div className="min-h-screen bg-[#030712] flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+    </div>
+  );
 
-      const token = localStorage.getItem("token");
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      await axios.patch(`${API_PATHS.SESSION.GET_ONE}/${id}`, { score: finalScore });
-    } catch (err) {
-      console.error("Failed to sync score");
-    }
-  };
+  if (!questions || questions.length === 0) return (
+    <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-6 text-center">
+      <FiAlertCircle className="text-6xl text-orange-500 mb-6" />
+      <h2 className="text-2xl font-bold text-white mb-2">No Questions Found</h2>
+      <button onClick={() => navigate("/dashboard")} className="mt-8 exam-button">Back to Dashboard</button>
+    </div>
+  );
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading interview...</div>;
-  if (!questions || questions.length === 0) return <div className="min-h-screen flex items-center justify-center">No questions found. Try recreating the session.</div>;
+  // Summary/Score Screen
+  if (showScore) return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-[#030712] flex items-center justify-center p-6"
+    >
+      <div className="exam-card max-w-2xl w-full p-12 md:p-20 text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-blue-500"></div>
+        <div className="w-20 h-20 bg-emerald-500/10 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+            <FiCheckCircle className="text-4xl" />
+        </div>
+        <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight mb-2">Assessment Complete</h2>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-12">Your scores have been validated.</p>
+        
+        <div className="grid grid-cols-2 gap-4 mb-12">
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+                <div className="text-4xl font-extrabold text-slate-800 mb-1">{finalScore} / {questions.length}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Score Achieved</div>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+                <div className="text-4xl font-extrabold text-blue-600">{Math.round((finalScore/questions.length)*100)}%</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Accuracy Rate</div>
+            </div>
+        </div>
 
-  if (quizFinished) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl shadow-xl w-full max-w-lg p-10 text-center border-t-8 border-orange-500">
-          <FiCheckCircle className="text-orange-500 w-24 h-24 mx-auto mb-6" />
-          <h2 className="text-4xl font-bold text-gray-800 mb-2">Interview Complete!</h2>
-          <p className="text-gray-500 mb-8 text-lg">You simulated a high-pressure technical screen.</p>
-
-          <div className="bg-orange-50 rounded-2xl p-6 mb-8 border border-orange-100 flex flex-col items-center justify-center">
-            <h3 className="text-5xl font-black text-orange-600 mb-2">
-              {/* Ensure Score renders the accurate closure aggregate rather than just state */}
-              {selectedOption === questions[currentIdx].answer ? score + 1 : score}
-              <span className="text-2xl text-orange-400"> / {questions.length}</span>
-            </h3>
-            <p className="font-semibold text-orange-800 uppercase tracking-widest text-sm">Correct Answers</p>
-          </div>
-
-          <button onClick={() => navigate("/dashboard")} className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition shadow-lg">
-            Return to Dashboard
-          </button>
-        </motion.div>
+        <button onClick={() => navigate("/dashboard")} className="exam-button w-full">Return to Dashboard</button>
       </div>
-    );
-  }
+    </motion.div>
+  );
 
   const q = questions[currentIdx];
+  const selectedOption = answers[currentIdx];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-12 flex flex-col items-center">
-      <div className="w-full max-w-3xl">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <button onClick={() => navigate("/dashboard")} className="text-gray-500 hover:text-black transition font-medium">← Abandon Mock</button>
-          
-          {/* Premium Glassmorphism Candidate Info */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 md:gap-4 bg-white/40 backdrop-blur-xl px-4 md:px-6 py-2 md:py-3 rounded-[2rem] border border-white/40 shadow-[0_8px_32px_0_rgba(79,70,229,0.1)] ring-1 ring-white/20"
-          >
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2 mb-1">
-                <motion.div 
-                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }} 
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.8)]"
-                />
-                <span className="text-[8px] md:text-[10px] text-indigo-600 font-extrabold uppercase tracking-[0.2em] leading-none">Live Monitoring</span>
-              </div>
-              <span className="text-sm md:text-base font-black text-slate-800 tracking-tight leading-none">{localStorage.getItem("name") || "Developer Session"}</span>
-              <span className="text-[8px] md:text-[9px] text-slate-400 font-mono mt-1 font-bold">ID: #{id?.slice(-8).toUpperCase() || "BETA-SYSTEM"}</span>
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-6 md:p-12">
+      <div className="max-w-5xl mx-auto">
+        {/* Exam Header */}
+        <div className="flex justify-between items-center mb-16 border-b border-slate-200 pb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <FiCheckCircle />
             </div>
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold border-2 border-white/50 shadow-lg text-sm md:text-base">
-              {(localStorage.getItem("name") || "D")[0].toUpperCase()}
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-800">InterviewAI</h1>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Professional Exam Center</span>
             </div>
-          </motion.div>
+          </div>
 
-          <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-bold text-gray-700">
-            Question {currentIdx + 1} of {questions.length}
+          <div className="flex items-center space-x-4 pr-2">
+            <div className="text-right">
+                <div className="text-xs font-extrabold text-slate-800">{(localStorage.getItem("name") || "USER")}</div>
+                <div className="text-[9px] font-bold uppercase tracking-widest text-blue-500">Active Test</div>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 font-extrabold">
+              {(localStorage.getItem("name")?.[0] || "U").toUpperCase()}
+            </div>
           </div>
         </div>
 
-        {/* Question Card */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIdx}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden"
-          >
-            {/* Timer Bar */}
-            <div className="h-2 w-full bg-gray-100">
-              <motion.div
-                className={`h-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-orange-500'}`}
-                initial={{ width: "100%" }}
-                animate={{ width: `${(timeLeft / 30) * 100}%` }}
-                transition={{ duration: 1, ease: "linear" }}
-              />
-            </div>
-
-            <div className="p-8 md:p-12">
-              <div className="flex justify-between items-start mb-8 gap-4">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-relaxed">
-                  {q.question}
-                </h2>
-                <div className={`flex shrink-0 items-center space-x-2 px-4 py-2 rounded-xl font-bold text-lg ${timeLeft <= 10 ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
-                  <FiClock />
-                  <span>{timeLeft}s</span>
-                </div>
+        {/* Progress & Timer */}
+        <div className="mb-12">
+           <div className="flex justify-between items-end mb-4">
+              <div>
+                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-600">Question {currentIdx + 1} of {questions.length}</span>
+                 <h2 className="text-3xl font-extrabold tracking-tight text-slate-800 mt-1">Technical Assessment</h2>
               </div>
+              <div className={`flex items-center space-x-3 px-6 py-3 rounded-2xl border-2 transition-all ${timeLeft < 10 ? "border-red-500 bg-red-50 text-red-600 animate-pulse" : "border-slate-200 bg-white text-slate-400"}`}>
+                 <FiClock />
+                 <span className="font-extrabold text-xl tabular-nums">{timeLeft}s</span>
+              </div>
+           </div>
+           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <motion.div 
+               initial={{ width: "0%" }}
+               animate={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
+               className="h-full bg-blue-600"
+              />
+           </div>
+        </div>
 
-              <div className="space-y-4">
+        {/* Question Area */}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentIdx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="exam-card p-10 md:p-16 relative overflow-hidden"
+          >
+              <p className="text-xl md:text-2xl font-bold leading-relaxed text-slate-800 mb-12">
+                {q.question}
+              </p>
+
+              <div className="grid grid-cols-1 gap-4">
                 {q.options?.map((opt, i) => {
-                  let btnStyle = "border-gray-200 hover:border-orange-400 hover:bg-orange-50 text-gray-700 font-medium bg-white";
-                  if (isAnswered) {
-                    if (opt === q.answer) {
-                      btnStyle = "border-green-500 bg-green-50 text-green-700 font-bold shadow-sm shadow-green-100";
-                    } else if (opt === selectedOption) {
-                      btnStyle = "border-red-500 bg-red-50 text-red-700 font-bold shadow-sm shadow-red-100";
+                  const hasAnswered = !!selectedOption;
+                  const isCorrect = opt === q.answer;
+                  const isSelected = selectedOption === opt;
+
+                  let btnStyle = "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50";
+                  
+                  if (hasAnswered) {
+                    if (isCorrect) {
+                      btnStyle = "border-emerald-500 bg-emerald-50 text-emerald-600 font-extrabold";
+                    } else if (isSelected) {
+                      btnStyle = "border-red-500 bg-red-50 text-red-600 font-extrabold";
                     } else {
-                      btnStyle = "border-gray-100 bg-gray-50 text-gray-400 opacity-60";
+                      btnStyle = "border-slate-100 bg-white text-slate-300 opacity-50";
                     }
                   }
 
                   return (
                     <button
                       key={i}
-                      disabled={isAnswered}
+                      disabled={hasAnswered}
                       onClick={() => handleOptionSelect(opt)}
-                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all flex justify-between items-center ${btnStyle}`}
+                      className={`w-full text-left px-8 py-6 rounded-2xl border-2 transition-all flex justify-between items-center ${btnStyle}`}
                     >
-                      <span className="text-base md:text-lg">{opt}</span>
-                      {isAnswered && opt === q.answer && <FiCheckCircle className="text-xl" />}
-                      {isAnswered && opt === selectedOption && opt !== q.answer && <FiXCircle className="text-xl" />}
+                      <span className="text-lg font-bold">{opt}</span>
+                      {hasAnswered && isCorrect && <FiCheckCircle className="text-xl" />}
+                      {hasAnswered && isSelected && !isCorrect && <FiXCircle className="text-xl" />}
                     </button>
                   );
                 })}
               </div>
-            </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Navigation Controls */}
+        <div className="mt-12 flex items-center justify-end">
+           {currentIdx < questions.length - 1 ? (
+             <button onClick={handleNext} className="exam-button flex items-center">
+                Skip Question <FiArrowRight className="ml-3" />
+             </button>
+           ) : (
+             <button onClick={handleNext} className="exam-button bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 flex items-center">
+                Finish Exam <FiCheckCircle className="ml-3" />
+             </button>
+           )}
+        </div>
       </div>
     </div>
   );

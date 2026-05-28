@@ -21,18 +21,16 @@ const PORT = process.env.PORT || 7001;
 
 //~ declare routes --> app.http_method('endpoint' , callback)
 app.get("/", (req, res) => {
-  //   res.send("req is sending");
-
-  app.get("/about", (req, res) => {
-    res.status(200).json({
-      message: "About page",
-    });
-  });
-
-  res.status(500).json({
+  res.status(200).json({
     success: true,
     message: "Okay",
     data: { userName: "NIGHT CODER" },
+  });
+});
+
+app.get("/about", (req, res) => {
+  res.status(200).json({
+    message: "About page",
   });
 });
 
