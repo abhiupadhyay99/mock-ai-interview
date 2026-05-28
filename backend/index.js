@@ -15,6 +15,18 @@ let app = express();
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Database connection middleware for Serverless environment
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("Database connection middleware error:", err.message);
+    res.status(500).json({ message: "Database connection failed", error: err.message });
+  }
+});
+
 app.use("/api/auth", userRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/ai", aiRoutes);
@@ -56,8 +68,6 @@ app.get("/about", (req, res) => {
   });
 });
 
-// Initialize database globally for Vercel Serverless
-connectDB();
 
 // Only listen locally, Vercel handles requests via the exported app
 if (process.env.NODE_ENV !== "production") {
