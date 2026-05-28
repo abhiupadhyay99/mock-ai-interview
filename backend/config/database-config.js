@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export const connectDB = async () => {
   try {
-    const connString = process.env.mongodb || process.env.LOCAL_MONGODB || "mongodb://127.0.0.1:27017/interviewprep";
+    const connString = process.env.MONGODB_URI || process.env.MONGODB || process.env.mongodb || process.env.LOCAL_MONGODB || "mongodb://127.0.0.1:27017/interviewprep";
     const isCloud = connString.includes("mongodb+srv:");
 
     // Mask password before logging for Atlas URI
