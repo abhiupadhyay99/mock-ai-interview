@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+export let connectionError = null;
+
 export const connectDB = async () => {
   try {
     const connString = process.env.MONGODB_URI || process.env.MONGODB || process.env.mongodb || process.env.LOCAL_MONGODB || "mongodb://127.0.0.1:27017/interviewprep";
@@ -14,8 +16,10 @@ export const connectDB = async () => {
     });
     
     console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
+    connectionError = null;
   } catch (error) {
     console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+    connectionError = error.message;
     
     if (error.message.includes("querySrv ECONNREFUSED") || error.message.includes("selection timeout")) {
       console.log("💡 TIP: Local machine is blocked from Atlas. Falling back to local MongoDB...");
@@ -24,9 +28,11 @@ export const connectDB = async () => {
            console.log("🔄 Retrying with local MongoDB...");
            await mongoose.connect(process.env.LOCAL_MONGODB);
            console.log(`✅ Successfully fallback to Local MongoDB: ${mongoose.connection.host}`);
+           connectionError = null;
            return;
          } catch (fallbackError) {
            console.error(`❌ Fallback failed: ${fallbackError.message}`);
+           connectionError = fallbackError.message;
          }
       }
       console.log("💡 Check your IP whitelist in MongoDB Atlas or ensure local MongoDB is running.");

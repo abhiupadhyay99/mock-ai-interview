@@ -4,7 +4,7 @@ import userRoutes from "./routes/auth-route.js";
 import sessionRoutes from "./routes/session-route.js";
 import aiRoutes from "./routes/ai-route.js";
 import dotenv from "dotenv";
-import { connectDB } from "./config/database-config.js";
+import { connectDB, connectionError } from "./config/database-config.js";
 import mongoose from "mongoose";
 
 dotenv.config();
@@ -34,6 +34,7 @@ app.get("/api/diagnostics", (req, res) => {
     mongoose: {
       readyState: mongoose.connection.readyState,
       host: mongoose.connection.host || "none",
+      error: connectionError,
     },
     resolvedConnString: maskedConn,
   });
